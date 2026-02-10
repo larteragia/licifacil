@@ -3,6 +3,13 @@
  * API oficial: https://pncp.gov.br/api/consulta/swagger-ui/index.html
  */
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 interface PNCPContratacao {
   id: string;
   numero?: string;
@@ -85,6 +92,9 @@ export async function scrapePNCPAll(maxPages: number = 10): Promise<PNCPContrata
 
       allContratacoes.push(...contratacoes);
 
+      // Persistir no Supabase
+      await persistirContratacoes(contratacoes);
+
       // Rate limiting: aguardar 1 segundo entre requisições
       if (page < maxPages) {
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -98,4 +108,36 @@ export async function scrapePNCPAll(maxPages: number = 10): Promise<PNCPContrata
   console.log(`[PNCP] Total coletado: ${allContratacoes.length} contratações`);
 
   return allContratacoes;
+}
+
+async function persistirContratacoes(contratacoes: PNCPContratacao[]): Promise<void> {
+  const bids = contratacoes.map(c => ({
+    portal: 'pncp',
+    external_id: c.id,
+    numero_edital: c.numero,
+    orgao: c.orgao,
+    objeto: c.objeto,
+    modalidade: c.modalidade,
+    valor_estimado: c.valorEstimado,
+    data_abertura: c.dataAbertura,
+    data_publicacao: c.dataPublicacao,
+    uf: c.uf,
+    municipio: c.municipio,
+    status: c.status || 'aberto',
+    raw_data: c,
+  }));
+
+  const { error } = await supabase
+    .from('bids')
+    .upsert(bids, {
+      onConflict: 'portal,external_id',
+      ignoreDuplicates: false,
+    });
+
+  if (error) {
+    console.error('[PNCP] Erro ao persistir contratações:', error);
+    throw error;
+  }
+
+  console.log(`[PNCP] ${bids.length} contratações persistidas no Supabase`);
 }
