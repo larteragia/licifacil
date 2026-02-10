@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/scrape",
       "schedule": "0 6,10,14,18 * * *"
+    },
+    {
+      "path": "/api/cron/check-alerts",
+      "schedule": "15 6,10,14,18 * * *"
     }
   ]
 }
