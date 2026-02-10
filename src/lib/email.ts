@@ -37,7 +37,7 @@ export async function sendAlertEmail(data: AlertEmailData) {
       bidCount > 1 ? 'ões' : 'ão'
     } - ${data.alertName}`;
 
-    const emailHtml = render(
+    const emailHtml = await render(
       AlertEmail({
         alertName: data.alertName,
         bids: data.bids,
@@ -56,7 +56,7 @@ export async function sendAlertEmail(data: AlertEmailData) {
 
     return {
       success: true,
-      messageId: result.id,
+      messageId: result.data?.id || 'unknown',
     };
   } catch (error: any) {
     console.error('[Email] Erro ao enviar alerta:', error);
@@ -97,7 +97,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
     return {
       success: true,
-      messageId: result.id,
+      messageId: result.data?.id || 'unknown',
     };
   } catch (error: any) {
     console.error('[Email] Erro ao enviar email de boas-vindas:', error);

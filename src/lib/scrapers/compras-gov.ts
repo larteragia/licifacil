@@ -3,6 +3,13 @@
  * API oficial: https://compras.dados.gov.br/docs/home.html
  */
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 interface ComprasGovLicitacao {
   id: string;
   numero?: string;
@@ -100,6 +107,9 @@ export async function scrapeComprasGovAll(maxPages: number = 10): Promise<Compra
 
       allLicitacoes.push(...licitacoes);
 
+      // Persistir no Supabase
+      await persistirLicitacoes(licitacoes);
+
       currentPage++;
 
       // Rate limiting: aguardar 600ms entre requisições (respeita limite de 100 req/min)
@@ -115,4 +125,37 @@ export async function scrapeComprasGovAll(maxPages: number = 10): Promise<Compra
   console.log(`[Compras.gov.br] Total coletado: ${allLicitacoes.length} licitações`);
 
   return allLicitacoes;
+}
+
+async function persistirLicitacoes(licitacoes: ComprasGovLicitacao[]): Promise<void> {
+  const bids = licitacoes.map(l => ({
+    portal: 'compras.gov.br',
+    external_id: l.id,
+    numero_edital: l.numero,
+    orgao: l.orgao,
+    objeto: l.objeto,
+    modalidade: l.modalidade,
+    valor_estimado: l.valorEstimado,
+    data_abertura: l.dataAbertura,
+    data_publicacao: l.dataPublicacao,
+    uf: l.uf,
+    municipio: l.municipio,
+    status: l.status || 'aberto',
+    url: l.url,
+    raw_data: l,
+  }));
+
+  const { error } = await supabase
+    .from('bids')
+    .upsert(bids, {
+      onConflict: 'portal,external_id',
+      ignoreDuplicates: false,
+    });
+
+  if (error) {
+    console.error('[Compras.gov.br] Erro ao persistir licitações:', error);
+    throw error;
+  }
+
+  console.log(`[Compras.gov.br] ${bids.length} licitações persistidas no Supabase`);
 }

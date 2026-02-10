@@ -70,12 +70,12 @@ export default function AlertasPage() {
 
   const handleCreateAlert = () => {
     if (!newAlert.name || !newAlert.keywords) {
-      alert('Preencha o nome e as palavras-chave do alerta');
+      window.alert('Preencha o nome e as palavras-chave do alerta');
       return;
     }
 
     // TODO: Salvar no Supabase
-    const alert: Alert = {
+    const newAlertObj: Alert = {
       id: Date.now().toString(),
       name: newAlert.name,
       keywords: newAlert.keywords,
@@ -85,7 +85,7 @@ export default function AlertasPage() {
       matchCount: 0,
     };
 
-    setAlerts(prev => [...prev, alert]);
+    setAlerts(prev => [newAlertObj, ...prev]);
     setNewAlert({ name: '', keywords: '', estados: [], modalidades: [] });
     setIsCreating(false);
   };
@@ -282,7 +282,7 @@ export default function AlertasPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => alert('Funcionalidade de edição em desenvolvimento')}
+                      onClick={() => window.alert('Funcionalidade de edição em desenvolvimento')}
                     >
                       Editar
                     </Button>
